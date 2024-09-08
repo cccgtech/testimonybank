@@ -1,40 +1,32 @@
-const Testimony = require('../models/Testimony')
-const mongoose = require("mongoose");
+const Testimony = require('../models/Testimony');
+const mongoose = require('mongoose');
 
+// Search for testimonies based on keyword
 const getTestimonies = async (req, res) => {
-    const testimony = await Testimony.find({}).sort({ createdAt: -1 });
-    res.status(200).json(testimony);
-  };
+  const { keyword } = req.query; // Grab the keyword from the query params
 
-  const getTestimony = async (req, res) => {
-    const { id } = req.params;
-  
-    if (!mongoose.Types.ObjectId.isValid(id)) {
-      return res.status(404).json({ error: "Testimony not found" });
-    }
-  
-    const testimony = await Testimony.findById(id);
-  
-    if (!testimony) {
-      return res.status(404).json({ error: "Testimony not found" });
-    }
-  
-    res.status(200).json(testimony);
-  };
+  let query = {};
 
-  const createTestimony = async (req, res) => {
-    const { subject, name, newTestimony } = req.body;
-  
-    try {
-      const testimony = await Testimony.create({ subject, name, newTestimony });
-      res.status(200).json(testimony);
-    } catch (error) {
-      res.status(400).json({ error: error.message });
-    }
-  };
+  if (keyword) {
+    query = {
+      $or: [
+        { subject: { $regex: keyword, $options: 'i' } },
+        { name: { $regex: keyword, $options: 'i' } },
+        { newTestimony: { $regex: keyword, $options: 'i' } }
+      ]
+    };
+  }
 
-  module.exports = {
-    getTestimonies,
-    getTestimony,
-    createTestimony,
-  };
+  try {
+    const testimonies = await Testimony.find(query)
+      .sort({ createdAt: -1 })
+      .limit(10); // Limit the results to 10
+    res.status(200).json(testimonies);
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+};
+
+module.exports = {
+  getTestimonies,
+};
